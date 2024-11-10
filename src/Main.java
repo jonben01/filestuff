@@ -1,61 +1,64 @@
 import java.io.*;
+import java.nio.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.Scanner;
+
+import static java.nio.file.StandardOpenOption.APPEND;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
-    private static String filePath = "C:\\Users\\Jonas\\Desktop\\MyFile.txt";
+    private static final String fileStringPath = "C:\\Users\\Jonas\\Desktop\\MyFile.txt";
+    private static final Path filePath = Path.of(fileStringPath);
     public static void main(String[] args) {
-        addTextAtLine("beans", 3);
+        addTextAtLine("beans", 0);
         //addToFile("Some line");
         printFileContents();
     }
 
     private static void addToFile(String text) {
-        try (FileWriter fw = new FileWriter(filePath, true);BufferedWriter bw = new BufferedWriter(fw);) {
-            bw.append(text).append("\n");
-        } catch (IOException e) {
+        try {
+            Files.write(filePath, text.getBytes(), APPEND);
+        }
+        catch (IOException e) {
             throw new RuntimeException(e);
         }
-
     }
 
     public static void addTextAtLine (String text, int lineNumber) {
-        try (FileReader fr = new FileReader(filePath);
-             BufferedReader br = new BufferedReader(fr);)
-            {
-            String fileInput = "";
+        String fileInput = "";
+        try {
+            //READ OLD FILE
+            List<String> allLines = Files.readAllLines(filePath);
+            allLines.add(lineNumber, text);
+            //CREAT NEW TEMP FILE
+            Path tempFilePath = Path.of(fileStringPath + "_TEMP");
+            Files.createFile(tempFilePath);
+            // ADD ALL LINES INCLUDING NEW LINE TO TEMP FILE
             int countLines = 0;
-            String line;
+            for (String line : allLines) {
+                Files.write(tempFilePath, (line + "\r\n").getBytes(), APPEND);
+                countLines++;
 
-            while ((line = br.readLine()) != null)
-            {
-            if (countLines == lineNumber)
-                fileInput += text + "\r\n";
-            fileInput += line + "\r\n";
-            countLines++;
             }
+            //overwrite old file with temp file, then delete temp.
+            Files.copy(tempFilePath, filePath, StandardCopyOption.REPLACE_EXISTING);
+            Files.deleteIfExists(tempFilePath);
 
-            try (FileWriter fw = new FileWriter(filePath);
-                 BufferedWriter bw = new BufferedWriter(fw);)
-            {
-                bw.append(fileInput);
-            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static void printFileContents() {
-
-            try (FileReader fr = new FileReader(filePath);BufferedReader br = new BufferedReader(fr);) {
-                String line;
-                while ((line = br.readLine()) != null) { System.out.println(line); }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-
-
-            }
-
+        try {
+            System.out.println (Files.readString(filePath));
+        }
+        catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
